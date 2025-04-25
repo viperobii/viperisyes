@@ -1,0 +1,97 @@
+Sea:AddToggle({
+    Name = "Auto Drive Boat",
+    Flag = "Sea/AutoDriveBoat",
+    Description = "Drives your boat forward with speed 350 and disables collision",
+    Default = false,
+    Callback = function(Value)
+        getgenv().AutoDriveBoat = Value
+
+        local Players = game:GetService("Players")
+        local RunService = game:GetService("RunService")
+        local UserInputService = game:GetService("UserInputService")
+        local Workspace = game:GetService("Workspace")
+
+        local LocalPlayer = Players.LocalPlayer
+
+        -- Clean up previous connection
+        if getgenv().AutoDriveBoatConnection then
+            getgenv().AutoDriveBoatConnection:Disconnect()
+            getgenv().AutoDriveBoatConnection = nil
+        end
+        
+        -- Release W key if toggle is turned off
+        if not Value then
+            UserInputService:SetKeyDown(Enum.KeyCode.W, false)
+            
+            -- Re-enable collision when turning off
+            local Character = LocalPlayer.Character
+            if Character then
+                for _, part in pairs(Character:GetDescendants()) do
+                    if part:IsA("BasePart") then
+                        part.CanCollide = true
+                    end
+                end
+            end
+            
+            for _, boat in pairs(Workspace.Boats:GetChildren()) do
+                local seat = boat:FindFirstChild("VehicleSeat")
+                if seat and seat.Occupant and seat.Occupant.Parent == Character then
+                    for _, part in pairs(boat:GetDescendants()) do
+                        if part:IsA("BasePart") then
+                            part.CanCollide = true
+                        end
+                    end
+                    seat.MaxSpeed = 100 -- Reset to default speed
+                end
+            end
+            return
+        end
+
+        getgenv().AutoDriveBoatConnection = RunService.Heartbeat:Connect(function()
+            if not getgenv().AutoDriveBoat then return end
+
+            local Character = LocalPlayer.Character
+            if not Character then return end
+            
+            local Humanoid = Character:FindFirstChild("Humanoid")
+            if not Humanoid then return end
+
+            local inBoat = false
+            local currentBoat = nil
+
+            -- Check if player is in a boat
+            for _, boat in pairs(Workspace.Boats:GetChildren()) do
+                local seat = boat:FindFirstChild("VehicleSeat")
+                if seat and seat.Occupant and seat.Occupant == Humanoid then
+                    inBoat = true
+                    currentBoat = boat
+                    seat.MaxSpeed = 350 -- Set speed
+                    
+                    -- Hold W key down continuously
+                    UserInputService:SetKeyDown(Enum.KeyCode.W, true)
+                    
+                    -- Apply NoClip to boat parts
+                    for _, part in pairs(boat:GetDescendants()) do
+                        if part:IsA("BasePart") then
+                            part.CanCollide = false
+                        end
+                    end
+                    
+                    -- Apply NoClip to character parts
+                    for _, part in pairs(Character:GetDescendants()) do
+                        if part:IsA("BasePart") then
+                            part.CanCollide = false
+                        end
+                    end
+                    
+                    break
+                end
+            end
+            
+            -- If not in boat, release W key
+            if not inBoat then
+                UserInputService:SetKeyDown(Enum.KeyCode.W, false)
+            end
+        end)
+    end
+})
