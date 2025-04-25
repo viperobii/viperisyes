@@ -1,0 +1,59 @@
+spawn(function()
+    while task.wait() do
+        if _G.BoneFarmV4 then
+            pcall(function()
+                local char = game.Players.LocalPlayer.Character
+
+                -- Auto Activate V4
+                if char:FindFirstChild("RaceEnergy") and char.RaceEnergy.Value >= 1 
+                    and char:FindFirstChild("RaceTransformed") 
+                    and not char.RaceTransformed.Value then
+                    
+                    game:GetService("Players").LocalPlayer.Backpack:FindFirstChild("Awakening")
+                        .RemoteFunction:InvokeServer(true)
+                    
+                    -- Wait until transformation is active before continuing
+                    repeat task.wait() until char.RaceTransformed.Value == true
+                    task.wait(0.5) -- Slight delay after transforming
+                end
+
+                -- Auto Teleport to Bone Island
+                if not hasTeleportedToGraveIsland then
+                    Tween(CFrame.new(-9480.80762, 142.130661, 5566.37305))
+                    hasTeleportedToGraveIsland = true
+                    task.wait(1)
+                end
+
+                -- Mob targeting logic
+                local mobs = { "Reborn Skeleton", "Living Zombie", "Posessed Mummy", "Demonic Soul" }
+                local target = nil
+                for _, mobName in ipairs(mobs) do
+                    for _, enemy in pairs(workspace.Enemies:GetChildren()) do
+                        if enemy.Name == mobName and enemy:FindFirstChild("Humanoid") 
+                            and enemy:FindFirstChild("HumanoidRootPart") 
+                            and enemy.Humanoid.Health > 0 then
+                            target = enemy
+                            break
+                        end
+                    end
+                    if target then break end
+                end
+
+                -- Attack logic
+                if target then
+                    AutoHaki()
+                    EquipTool(_G.SelectWeapon or SelectWeapon)
+                    target.HumanoidRootPart.CanCollide = false
+                    target.Humanoid.WalkSpeed = 0
+                    if target:FindFirstChild("Head") then
+                        target.Head.CanCollide = false
+                    end
+                    Tween(target.HumanoidRootPart.CFrame * CFrame.new(0, 20, 0))
+                    AttackNoCoolDown()
+                else
+                    task.wait(1)
+                end
+            end)
+        end
+    end
+end)
